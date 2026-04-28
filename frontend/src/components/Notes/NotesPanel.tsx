@@ -16,6 +16,19 @@ export default function NotesPanel() {
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [search, setSearch] = useState('');
+
+  // Client-side filter — see #6. Empty / whitespace-only input is
+  // treated as "no filter" so clearing the box restores the full list.
+  const visibleNotes = (() => {
+    const q = search.trim().toLowerCase();
+    if (q === '') return notes;
+    return notes.filter(
+      n =>
+        n.title.toLowerCase().includes(q) ||
+        n.content.toLowerCase().includes(q),
+    );
+  })();
 
   const fetchNotes = async () => {
     if (!activeSpaceId) return;
@@ -63,13 +76,24 @@ export default function NotesPanel() {
           <span>Notes</span>
           <button onClick={newNote}>+</button>
         </div>
-        {notes.map(n => (
+        <input
+          className="note-search-input"
+          type="search"
+          placeholder="Search notes…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          aria-label="Search notes"
+        />
+        {visibleNotes.map(n => (
           <div key={n.id}
             className={`note-item ${activeNote?.id === n.id ? 'active' : ''}`}
             onClick={() => selectNote(n)}>
             {n.title || 'Untitled'}
           </div>
         ))}
+        {visibleNotes.length === 0 && search.trim() !== '' && (
+          <div className="note-item-empty">No notes match “{search}”.</div>
+        )}
       </div>
 
       <div className="notes-editor">
