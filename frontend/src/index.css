@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+:root {
+  --font-body: 'Inter', system-ui, sans-serif;
+  color-scheme: light dark;
+}
+
+body {
+  font-family: var(--font-body);
+  min-height: 100dvh;
+  background-color: #0f0f0f;
+  color: #e4e4e4;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:focus-visible {
+  outline: 2px solid #4f98a3;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(79, 152, 163, 0.3);
+}
