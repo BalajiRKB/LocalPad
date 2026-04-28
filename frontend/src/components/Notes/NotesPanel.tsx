@@ -1,106 +1,92 @@
-import { useState, useEffect } from 'react'
-import { useSpaceStore } from '@/store/spaceStore'
-import { getNotes, createNote, updateNote, deleteNote } from '@/lib/api'
+import { useEffect, useState } from 'react';
+import { useSpaceStore } from '@/store/spaceStore';
+import './NotesPanel.css';
 
 interface Note {
-  id: number
-  title: string
-  content: string
+  id: number;
+  title: string;
+  content: string;
 }
 
+const API = 'http://localhost:8000/api';
+
 export default function NotesPanel() {
-  const { activeSpaceId } = useSpaceStore()
-  const [notes, setNotes] = useState<Note[]>([])
-  const [selected, setSelected] = useState<Note | null>(null)
-  const [search, setSearch] = useState('')
+  const { activeSpaceId } = useSpaceStore();
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [activeNote, setActiveNote] = useState<Note | null>(null);
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
 
   const fetchNotes = async () => {
-    if (!activeSpaceId) return
-    const { data } = await getNotes(activeSpaceId, search || undefined)
-    setNotes(data)
-  }
+    if (!activeSpaceId) return;
+    const res = await fetch(`${API}/notes/space/${activeSpaceId}`);
+    const data = await res.json();
+    setNotes(data);
+  };
 
-  useEffect(() => { fetchNotes() }, [activeSpaceId, search])
+  useEffect(() => { fetchNotes(); }, [activeSpaceId]);
 
-  const handleNew = async () => {
-    if (!activeSpaceId) return
-    const { data } = await createNote(activeSpaceId, 'Untitled', '')
-    setNotes((n) => [data, ...n])
-    setSelected(data)
-  }
+  const saveNote = async () => {
+    if (!activeSpaceId || !title.trim()) return;
+    if (activeNote) {
+      await fetch(`${API}/notes/${activeNote.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content }),
+      });
+    } else {
+      await fetch(`${API}/notes/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ space_id: activeSpaceId, title, content }),
+      });
+    }
+    fetchNotes();
+  };
 
-  const handleUpdate = async (field: 'title' | 'content', value: string) => {
-    if (!selected) return
-    const updated = { ...selected, [field]: value }
-    setSelected(updated)
-    setNotes((ns) => ns.map((n) => (n.id === updated.id ? updated : n)))
-    await updateNote(selected.id, { [field]: value })
-  }
+  const selectNote = (note: Note) => {
+    setActiveNote(note);
+    setTitle(note.title);
+    setContent(note.content);
+  };
 
-  const handleDelete = async (id: number) => {
-    await deleteNote(id)
-    setNotes((ns) => ns.filter((n) => n.id !== id))
-    if (selected?.id === id) setSelected(null)
-  }
+  const newNote = () => {
+    setActiveNote(null);
+    setTitle('');
+    setContent('');
+  };
 
   return (
-    <aside className="w-80 flex flex-col bg-[#131313] border-l border-white/8 h-screen">
-      <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
-        <span className="text-sm font-medium text-white/70">📝 Notes</span>
-        <button onClick={handleNew} className="text-xs text-teal-400 hover:text-teal-300 transition-colors">+ New</button>
-      </div>
-
-      {/* Search */}
-      <div className="px-3 pt-3">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search notes..."
-          className="w-full bg-white/6 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/30 outline-none"
-        />
-      </div>
-
-      {/* Note list */}
-      <div className="flex-1 overflow-y-auto px-3 pt-3 space-y-1">
-        {notes.map((note) => (
-          <div
-            key={note.id}
-            onClick={() => setSelected(note)}
-            className={`px-3 py-2 rounded-lg cursor-pointer group flex items-center justify-between transition-colors ${
-              selected?.id === note.id ? 'bg-white/10' : 'hover:bg-white/5'
-            }`}
-          >
-            <span className="text-sm text-white/70 truncate">{note.title || 'Untitled'}</span>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDelete(note.id) }}
-              className="text-white/20 hover:text-red-400 text-xs opacity-0 group-hover:opacity-100 transition-all"
-            >
-              ✕
-            </button>
+    <div className="notes-panel">
+      <div className="notes-list">
+        <div className="notes-list-header">
+          <span>Notes</span>
+          <button onClick={newNote}>+</button>
+        </div>
+        {notes.map(n => (
+          <div key={n.id}
+            className={`note-item ${activeNote?.id === n.id ? 'active' : ''}`}
+            onClick={() => selectNote(n)}>
+            {n.title || 'Untitled'}
           </div>
         ))}
-        {notes.length === 0 && (
-          <p className="text-xs text-white/20 px-2 pt-4">No notes yet. Click + New to create one.</p>
-        )}
       </div>
 
-      {/* Note editor */}
-      {selected && (
-        <div className="border-t border-white/8 flex flex-col" style={{ height: '50%' }}>
-          <input
-            value={selected.title}
-            onChange={(e) => handleUpdate('title', e.target.value)}
-            className="px-4 pt-3 pb-1 text-sm font-medium bg-transparent text-white outline-none border-b border-white/8"
-            placeholder="Note title"
-          />
-          <textarea
-            value={selected.content}
-            onChange={(e) => handleUpdate('content', e.target.value)}
-            className="flex-1 px-4 py-3 bg-transparent text-sm text-white/70 outline-none resize-none placeholder-white/20"
-            placeholder="Write your note in Markdown..."
-          />
-        </div>
-      )}
-    </aside>
-  )
+      <div className="notes-editor">
+        <input
+          className="note-title-input"
+          placeholder="Note title"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+        />
+        <textarea
+          className="note-content-input"
+          placeholder="Write your note here…"
+          value={content}
+          onChange={e => setContent(e.target.value)}
+        />
+        <button className="note-save-btn" onClick={saveNote}>Save</button>
+      </div>
+    </div>
+  );
 }

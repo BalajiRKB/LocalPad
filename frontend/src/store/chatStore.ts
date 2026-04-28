@@ -1,78 +1,63 @@
-import { create } from 'zustand'
-import { getConversations, createConversation, sendMessage, getMessages, getModels } from '@/lib/api'
+import { create } from 'zustand';
 
-interface Message {
-  id: number
-  role: 'user' | 'assistant'
-  content: string
-  created_at: string
-}
+const API = 'http://localhost:8000/api';
 
-interface Conversation {
-  id: number
-  title: string
-  model: string
-  created_at: string
-}
+interface Message { role: 'user' | 'assistant'; content: string; }
+interface Conversation { id: number; title: string; model: string; }
 
 interface ChatStore {
-  conversations: Conversation[]
-  activeConversationId: number | null
-  messages: Message[]
-  models: string[]
-  isLoading: boolean
-  fetchConversations: (spaceId: number) => Promise<void>
-  fetchMessages: (convId: number) => Promise<void>
-  fetchModels: () => Promise<void>
-  startConversation: (spaceId: number, model: string) => Promise<void>
-  send: (content: string) => Promise<void>
-  setActiveConversation: (id: number) => void
+  conversations: Conversation[];
+  activeConvId: number | null;
+  messages: Message[];
+  isLoading: boolean;
+  fetchConversations: (spaceId: number) => Promise<void>;
+  createConversation: (spaceId: number) => Promise<void>;
+  setActiveConv: (id: number) => void;
+  fetchMessages: (convId: number) => Promise<void>;
+  sendMessage: (convId: number, content: string) => Promise<void>;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
   conversations: [],
-  activeConversationId: null,
+  activeConvId: null,
   messages: [],
-  models: [],
   isLoading: false,
 
-  fetchConversations: async (spaceId: number) => {
-    const { data } = await getConversations(spaceId)
-    set({ conversations: data, activeConversationId: data[0]?.id ?? null })
-    if (data[0]) await get().fetchMessages(data[0].id)
+  fetchConversations: async (spaceId) => {
+    const res = await fetch(`${API}/conversations/space/${spaceId}`);
+    const conversations = await res.json();
+    set({ conversations, activeConvId: conversations[0]?.id ?? null });
+    if (conversations[0]) get().fetchMessages(conversations[0].id);
   },
 
-  fetchMessages: async (convId: number) => {
-    const { data } = await getMessages(convId)
-    set({ messages: data, activeConversationId: convId })
+  createConversation: async (spaceId) => {
+    await fetch(`${API}/conversations/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ space_id: spaceId, title: 'New Conversation', model: 'llama3' }),
+    });
+    get().fetchConversations(spaceId);
   },
 
-  fetchModels: async () => {
-    const { data } = await getModels()
-    set({ models: data })
+  setActiveConv: (id) => {
+    set({ activeConvId: id });
+    get().fetchMessages(id);
   },
 
-  startConversation: async (spaceId: number, model: string) => {
-    const { data } = await createConversation(spaceId, model)
-    set((s) => ({ conversations: [data, ...s.conversations], activeConversationId: data.id, messages: [] }))
+  fetchMessages: async (convId) => {
+    const res = await fetch(`${API}/messages/conversation/${convId}`);
+    const messages = await res.json();
+    set({ messages });
   },
 
-  send: async (content: string) => {
-    const { activeConversationId } = get()
-    if (!activeConversationId) return
-    set({ isLoading: true })
-    // Optimistic user message
-    const tempMsg: Message = { id: Date.now(), role: 'user', content, created_at: new Date().toISOString() }
-    set((s) => ({ messages: [...s.messages, tempMsg] }))
-    try {
-      const { data } = await sendMessage(activeConversationId, content)
-      set((s) => ({ messages: [...s.messages, data] }))
-    } finally {
-      set({ isLoading: false })
-    }
+  sendMessage: async (convId, content) => {
+    set(s => ({ messages: [...s.messages, { role: 'user', content }], isLoading: true }));
+    const res = await fetch(`${API}/messages/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversation_id: convId, content }),
+    });
+    const data = await res.json();
+    set(s => ({ messages: [...s.messages, { role: 'assistant', content: data.content }], isLoading: false }));
   },
-
-  setActiveConversation: (id: number) => {
-    get().fetchMessages(id)
-  },
-}))
+}));
