@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.venv
+venv/
+env/
+pip-wheel-metadata/
+*.log
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+.cache/
+.parcel-cache/
+*.local
+
+# Vite
+dist/
+dist-ssr/
+*.local
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets
+secrets.json
+config.local.json
