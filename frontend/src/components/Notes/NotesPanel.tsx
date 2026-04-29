@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSpaceStore } from '@/store/spaceStore';
 import './NotesPanel.css';
 
@@ -18,17 +18,27 @@ export default function NotesPanel() {
   const [content, setContent] = useState('');
   const [search, setSearch] = useState('');
 
+  // The trimmed query is the actual filter input; reuse it for the
+  // empty-state message so users see what the filter is matching on
+  // instead of the raw value (e.g. `"   foo  "` → `"foo"`).
+  const trimmedSearch = search.trim();
+
   // Client-side filter — see #6. Empty / whitespace-only input is
   // treated as "no filter" so clearing the box restores the full list.
-  const visibleNotes = (() => {
-    const q = search.trim().toLowerCase();
+  // Memoised so unrelated re-renders (e.g. typing in the editor textarea)
+  // don't pay the filter cost.
+  // `title`/`content` come from the API as `Optional[str]` on the
+  // backend — coerce nulls to empty strings before lower-casing so a
+  // missing field doesn't throw.
+  const visibleNotes = useMemo(() => {
+    const q = trimmedSearch.toLowerCase();
     if (q === '') return notes;
     return notes.filter(
       n =>
-        n.title.toLowerCase().includes(q) ||
-        n.content.toLowerCase().includes(q),
+        (n.title ?? '').toLowerCase().includes(q) ||
+        (n.content ?? '').toLowerCase().includes(q),
     );
-  })();
+  }, [notes, trimmedSearch]);
 
   const fetchNotes = async () => {
     if (!activeSpaceId) return;
@@ -91,8 +101,8 @@ export default function NotesPanel() {
             {n.title || 'Untitled'}
           </div>
         ))}
-        {visibleNotes.length === 0 && search.trim() !== '' && (
-          <div className="note-item-empty">No notes match “{search}”.</div>
+        {visibleNotes.length === 0 && trimmedSearch !== '' && (
+          <div className="note-item-empty">No notes match "{trimmedSearch}".</div>
         )}
       </div>
 
