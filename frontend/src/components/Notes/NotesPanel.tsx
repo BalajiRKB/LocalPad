@@ -23,12 +23,12 @@ export default function NotesPanel() {
   // instead of the raw value (e.g. `"   foo  "` → `"foo"`).
   const trimmedSearch = search.trim();
 
-  // Client-side filter — see #6. Empty / whitespace-only input is
+  // Client-side filter, see #6. Empty / whitespace-only input is
   // treated as "no filter" so clearing the box restores the full list.
   // Memoised so unrelated re-renders (e.g. typing in the editor textarea)
   // don't pay the filter cost.
   // `title`/`content` come from the API as `Optional[str]` on the
-  // backend — coerce nulls to empty strings before lower-casing so a
+  // backend, coerce nulls to empty strings before lower-casing so a
   // missing field doesn't throw.
   const visibleNotes = useMemo(() => {
     const q = trimmedSearch.toLowerCase();

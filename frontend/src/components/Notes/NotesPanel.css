@@ -89,7 +89,7 @@
 }
 .note-save-btn:hover { background: var(--color-primary-hover); }
 
-/* Search input — sits between the list header and the note items
+/* Search input, sits between the list header and the note items
    so it scrolls with the panel rather than the editor. */
 .note-search-input {
   margin: 6px 8px 8px 8px;
@@ -106,7 +106,7 @@
   border-color: var(--color-primary);
 }
 
-/* "No matches" placeholder — dimmed, italic, not selectable as a note. */
+/* "No matches" placeholder, dimmed, italic, not selectable as a note. */
 .note-item-empty {
   padding: 8px 12px;
   color: var(--color-text-muted);
