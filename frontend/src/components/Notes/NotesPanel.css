@@ -92,10 +92,10 @@
 /* Search input, sits between the list header and the note items
    so it scrolls with the panel rather than the editor. */
 .note-search-input {
-  margin: var(--space-1-5) var(--space-2) var(--space-2) var(--space-2);
-  padding: var(--space-1-5) var(--space-2);
+  margin: var(--space-2);
+  padding: var(--space-1) var(--space-2);
   font-size: var(--text-sm);
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: inherit;
